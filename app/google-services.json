@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "583168960250",
+    "project_id": "xposuredetectorsmartapp",
+    "storage_bucket": "xposuredetectorsmartapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:583168960250:android:027aacb2aa43e5e0088b43",
+        "android_client_info": {
+          "package_name": "com.example.xposuredetectorsmart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqweaI5xOFqTTSWL3lLJkhGMdEPnJeP9k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
