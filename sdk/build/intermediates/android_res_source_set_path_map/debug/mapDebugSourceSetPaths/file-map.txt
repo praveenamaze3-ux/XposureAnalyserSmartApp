@@ -1,0 +1,9 @@
+org.opencv.sdk-pngs-0 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\build\generated\res\pngs\debug
+org.opencv.sdk-updated_navigation_xml-1 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\build\generated\updated_navigation_xml\debug
+org.opencv.sdk-mergeDebugResources-2 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
+org.opencv.sdk-mergeDebugResources-3 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+org.opencv.sdk-debug-4 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\build\intermediates\merged_res\debug\mergeDebugResources
+org.opencv.sdk-debug-5 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\build\intermediates\packaged_res\debug\packageDebugResources
+org.opencv.sdk-java-6 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\java\res
+org.opencv.sdk-debug-7 C:\Users\PRAVEEN\AndroidStudioProjects\XposureDetectorSmart\sdk\src\debug\res
+gradleHome-0 C:\Users\PRAVEEN\.gradle
