@@ -33,6 +33,11 @@ class SharedShiftViewModel @Inject constructor(
     private val _shiftState = MutableStateFlow<ShiftState>(ShiftState.NoShift)
     val shiftState: StateFlow<ShiftState> = _shiftState.asStateFlow()
 
+    // Worker identified via the wristband scan, awaiting the disposable-strip scan to pair
+    // with before the shift actually starts.
+    private val _pendingContext = MutableStateFlow<WorkerContext?>(null)
+    val pendingContext: StateFlow<WorkerContext?> = _pendingContext.asStateFlow()
+
     private var batchCaptureCount = 0
     private val _batchCount = MutableStateFlow(0)
     val batchCount: StateFlow<Int> = _batchCount.asStateFlow()
@@ -40,8 +45,14 @@ class SharedShiftViewModel @Inject constructor(
     val knownWorkerIds: StateFlow<List<String>> = workerRepository.observeKnownWorkerIds()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Called once the wristband QR is scanned; the shift isn't active until a strip is paired via [startShift]. */
+    fun identifyWorker(context: WorkerContext) {
+        _pendingContext.value = context
+    }
+
     fun startShift(context: WorkerContext) {
         _shiftState.value = ShiftState.Active(context)
+        _pendingContext.value = null
         batchCaptureCount = 0
         _batchCount.value = 0
         viewModelScope.launch {
@@ -50,6 +61,11 @@ class SharedShiftViewModel @Inject constructor(
                 AuditAction.SCAN_QR,
                 context.workerId,
                 mapOf("location" to context.locationCode, "shift" to context.shiftType),
+            )
+            auditRepository.log(
+                AuditAction.SCAN_STRIP,
+                context.workerId,
+                mapOf("stripSerial" to context.stripSerial),
             )
         }
     }
@@ -74,6 +90,7 @@ class SharedShiftViewModel @Inject constructor(
 
     fun clearShift() {
         _shiftState.value = ShiftState.NoShift
+        _pendingContext.value = null
         batchCaptureCount = 0
         _batchCount.value = 0
     }

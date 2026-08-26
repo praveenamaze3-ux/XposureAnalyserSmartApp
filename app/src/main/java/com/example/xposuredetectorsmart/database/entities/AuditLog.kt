@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 
 enum class AuditAction {
     SCAN_QR,
+    SCAN_STRIP,
     CAPTURE_IMAGE,
     CALCULATE_DOSE,
     EXPORT_PDF,

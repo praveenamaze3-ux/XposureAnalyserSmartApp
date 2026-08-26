@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,8 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
-import com.example.xposuredetectorsmart.ui.components.ConfidenceBadge
-import com.example.xposuredetectorsmart.ui.components.PpmBadge
+import com.example.xposuredetectorsmart.ui.components.CircularGauge
+import com.example.xposuredetectorsmart.ui.components.GlassCard
+import com.example.xposuredetectorsmart.ui.components.HudBackground
+import com.example.xposuredetectorsmart.ui.components.confidenceStatusColor
+import com.example.xposuredetectorsmart.ui.components.ppmStatusColor
+import com.example.xposuredetectorsmart.ui.theme.HudLabelStyle
+import com.example.xposuredetectorsmart.utils.Constants
 import com.example.xposuredetectorsmart.viewmodel.DoseAnalysisViewModel
 
 @Composable
@@ -36,6 +42,7 @@ fun ResultsScreen(
 ) {
     val state by doseAnalysisViewModel.uiState.collectAsState()
 
+    HudBackground {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -52,14 +59,34 @@ fun ResultsScreen(
             }
 
             is DoseAnalysisViewModel.UiState.Success -> {
-                Text("Dose Result", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(16.dp))
-                PpmBadge(ppm = s.ppm)
-                Spacer(Modifier.height(8.dp))
-                ConfidenceBadge(confidence = s.confidence)
+                Text("DOSE RESULT", style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.headlineSmall.fontSize))
+                Spacer(Modifier.height(24.dp))
 
-                if (s.confidence < com.example.xposuredetectorsmart.utils.Constants.MIN_CONFIDENCE_WARNING) {
-                    Spacer(Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularGauge(
+                        value = s.ppm.toFloat(),
+                        maxValue = (Constants.IDLH_PPM * 1.2).toFloat(),
+                        valueText = "%.1f".format(s.ppm),
+                        label = "ppm",
+                        color = ppmStatusColor(s.ppm),
+                        size = 180.dp,
+                    )
+                    CircularGauge(
+                        value = s.confidence,
+                        maxValue = 1f,
+                        valueText = "${(s.confidence * 100).toInt()}%",
+                        label = "confidence",
+                        color = confidenceStatusColor(s.confidence),
+                        size = 110.dp,
+                        valueTextSize = MaterialTheme.typography.titleLarge.fontSize,
+                    )
+                }
+
+                if (s.confidence < Constants.MIN_CONFIDENCE_WARNING) {
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         "Low confidence reading - consider retrying with better lighting/focus.",
                         color = MaterialTheme.colorScheme.error,
@@ -68,40 +95,69 @@ fun ResultsScreen(
                 }
 
                 Spacer(Modifier.height(24.dp))
-                Text("Reference patches detected: ${s.patches.size}", style = MaterialTheme.typography.titleSmall)
-                s.patches.forEach { patch ->
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        "- ${patch.type}: saturation %.2f".format(patch.saturation),
-                        style = MaterialTheme.typography.bodySmall,
+                        "REFERENCE PATCHES DETECTED: ${s.patches.size}",
+                        style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize),
                     )
+                    s.patches.forEach { patch ->
+                        Text(
+                            "- ${patch.type}: saturation %.2f".format(patch.saturation),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(24.dp))
-                Text("Before / After correction", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "BEFORE / AFTER CORRECTION",
+                    style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize),
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(
-                            bitmap = s.originalBitmap.asImageBitmap(),
-                            contentDescription = "Original capture",
-                            modifier = Modifier.fillMaxWidth().height(160.dp),
+                        GlassCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                            Image(
+                                bitmap = s.originalBitmap.asImageBitmap(),
+                                contentDescription = "Original capture",
+                                modifier = Modifier.fillMaxWidth().height(160.dp),
+                            )
+                        }
+                        Text(
+                            "ORIGINAL",
+                            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
+                            modifier = Modifier.padding(top = 6.dp),
                         )
-                        Text("Original", style = MaterialTheme.typography.labelSmall)
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(
-                            bitmap = s.correctedBitmap.asImageBitmap(),
-                            contentDescription = "Color-corrected capture",
-                            modifier = Modifier.fillMaxWidth().height(160.dp),
+                        GlassCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                            Image(
+                                bitmap = s.correctedBitmap.asImageBitmap(),
+                                contentDescription = "Color-corrected capture",
+                                modifier = Modifier.fillMaxWidth().height(160.dp),
+                            )
+                        }
+                        Text(
+                            "CORRECTED",
+                            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
+                            modifier = Modifier.padding(top = 6.dp),
                         )
-                        Text("Corrected", style = MaterialTheme.typography.labelSmall)
                     }
                 }
 
                 Spacer(Modifier.height(32.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { doseAnalysisViewModel.reset(); onRetry() }) { Text("Retry") }
-                    Button(onClick = { doseAnalysisViewModel.reset(); onDone() }) { Text("Done") }
+                    OutlinedButton(
+                        onClick = { doseAnalysisViewModel.reset(); onRetry() },
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) { com.example.xposuredetectorsmart.ui.components.HudButtonLabel("Retry") }
+                    Button(
+                        onClick = { doseAnalysisViewModel.reset(); onDone() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) { com.example.xposuredetectorsmart.ui.components.HudButtonLabel("Done") }
                 }
             }
 
@@ -111,12 +167,16 @@ fun ResultsScreen(
                 Spacer(Modifier.height(8.dp))
                 Text(s.message, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = { doseAnalysisViewModel.reset(); onRetry() }) { Text("Retry") }
+                Button(
+                    onClick = { doseAnalysisViewModel.reset(); onRetry() },
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) { com.example.xposuredetectorsmart.ui.components.HudButtonLabel("Retry") }
             }
 
             is DoseAnalysisViewModel.UiState.Idle -> {
                 // Nothing to show; ResultsScreen should only be reached after a capture starts.
             }
         }
+    }
     }
 }

@@ -13,7 +13,7 @@ import com.example.xposuredetectorsmart.database.entities.WorkerContext
 
 @Database(
     entities = [DoseLog::class, WorkerContext::class, ColorProfile::class, AuditLog::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

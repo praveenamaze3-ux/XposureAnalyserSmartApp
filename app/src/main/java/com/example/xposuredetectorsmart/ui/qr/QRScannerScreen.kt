@@ -5,8 +5,6 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +12,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -35,14 +32,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.xposuredetectorsmart.ui.components.CameraHudOverlay
 import com.example.xposuredetectorsmart.ui.components.CameraPermissionGate
+import com.example.xposuredetectorsmart.ui.components.ScanFrame
+import com.example.xposuredetectorsmart.ui.components.TelemetryText
+import com.example.xposuredetectorsmart.ui.theme.HudLabelStyle
+import com.example.xposuredetectorsmart.ui.theme.SignalCyan
 import com.example.xposuredetectorsmart.viewmodel.SharedShiftViewModel
 import java.util.concurrent.Executors
 
 @Composable
 fun QRScannerScreen(
     sharedShiftViewModel: SharedShiftViewModel,
-    onScanned: () -> Unit,
+    onWorkerIdentified: () -> Unit,
     viewModel: QRScannerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,20 +52,20 @@ fun QRScannerScreen(
     LaunchedEffect(uiState) {
         val state = uiState
         if (state is QRScanUiState.Scanned) {
-            sharedShiftViewModel.startShift(state.context)
-            onScanned()
+            sharedShiftViewModel.identifyWorker(state.context)
+            onWorkerIdentified()
         }
     }
 
     CameraPermissionGate {
         Box(modifier = Modifier.fillMaxSize()) {
             QRCameraPreview(onFrame = viewModel::onFrame)
+            CameraHudOverlay(accentColor = SignalCyan, modifier = Modifier.align(Alignment.Center))
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(260.dp)
-                    .border(3.dp, Color.White, RoundedCornerShape(16.dp)),
+            ScanFrame(
+                accentColor = SignalCyan,
+                modifier = Modifier.align(Alignment.Center),
+                size = 260.dp,
             )
 
             Column(
@@ -74,22 +76,35 @@ fun QRScannerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Surface(color = Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp)) {
-                    Text(
-                        text = "Align the worker's QR code within the frame",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
+                Surface(
+                    color = Color.Black.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SignalCyan.copy(alpha = 0.4f)),
+                ) {
+                    Column(
                         modifier = Modifier.padding(16.dp),
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "SCAN WRISTBAND QR",
+                            color = Color.White,
+                            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize),
+                            textAlign = TextAlign.Center,
+                        )
+                        androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 4.dp))
+                        TelemetryText(text = "Searching for worker", color = SignalCyan)
+                    }
                 }
 
                 val invalidState = uiState
                 if (invalidState is QRScanUiState.Invalid) {
-                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(12.dp)) {
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(4.dp)) {
                         Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(invalidState.message, color = MaterialTheme.colorScheme.onErrorContainer)
-                            Button(onClick = { viewModel.resetToScanning() }) { Text("Try again") }
+                            Button(
+                                onClick = { viewModel.resetToScanning() },
+                                shape = MaterialTheme.shapes.extraLarge,
+                            ) { com.example.xposuredetectorsmart.ui.components.HudButtonLabel("Try again") }
                         }
                     }
                 }

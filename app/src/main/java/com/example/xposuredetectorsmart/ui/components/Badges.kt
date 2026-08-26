@@ -9,34 +9,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.xposuredetectorsmart.ui.theme.HudNumberStyle
+import com.example.xposuredetectorsmart.ui.theme.StatusCritical
+import com.example.xposuredetectorsmart.ui.theme.StatusSafe
+import com.example.xposuredetectorsmart.ui.theme.StatusWarning
 import com.example.xposuredetectorsmart.utils.Constants
 
+fun ppmStatusColor(ppm: Double): Color = when {
+    ppm >= Constants.IDLH_PPM -> StatusCritical
+    ppm >= Constants.OSHA_PEL_8HR * 5 -> StatusWarning
+    else -> StatusSafe
+}
+
+fun confidenceStatusColor(confidence: Float): Color =
+    if (confidence < Constants.MIN_CONFIDENCE_WARNING) StatusWarning else StatusSafe
+
+/** Compact ppm pill for inline/list contexts (the hero Results reading uses [CircularGauge] instead). */
 @Composable
 fun PpmBadge(ppm: Double, modifier: Modifier = Modifier) {
-    val color = when {
-        ppm >= Constants.IDLH_PPM -> Color(0xFFD32F2F)
-        ppm >= Constants.OSHA_PEL_8HR * 5 -> Color(0xFFF9A825)
-        else -> Color(0xFF2E7D32)
-    }
+    val color = ppmStatusColor(ppm)
     Text(
         text = "%.1f ppm".format(ppm),
         color = Color.White,
-        style = MaterialTheme.typography.titleMedium,
+        style = HudNumberStyle.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
         modifier = modifier
-            .background(color, RoundedCornerShape(50))
+            .background(color, RoundedCornerShape(3.dp))
             .padding(horizontal = 16.dp, vertical = 6.dp),
     )
 }
 
 @Composable
 fun ConfidenceBadge(confidence: Float, modifier: Modifier = Modifier) {
-    val color = if (confidence < Constants.MIN_CONFIDENCE_WARNING) Color(0xFFF9A825) else Color(0xFF2E7D32)
+    val color = confidenceStatusColor(confidence)
     Text(
-        text = "Confidence %.0f%%".format(confidence * 100),
+        text = "CONFIDENCE %.0f%%".format(confidence * 100),
         color = Color.White,
-        style = MaterialTheme.typography.labelLarge,
+        style = com.example.xposuredetectorsmart.ui.theme.HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelLarge.fontSize),
         modifier = modifier
-            .background(color, RoundedCornerShape(50))
+            .background(color, RoundedCornerShape(3.dp))
             .padding(horizontal = 12.dp, vertical = 4.dp),
     )
 }

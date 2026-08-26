@@ -11,6 +11,7 @@ data class WorkerContext(
     val shiftDate: String, // ISO-8601 LocalDate
     val locationCode: String,
     val shiftType: String,
+    val stripSerial: String, // identifies the specific disposable strip issued for this shift
     val phoneModel: String,
     val appVersion: String,
     val scanTimestamp: Long,

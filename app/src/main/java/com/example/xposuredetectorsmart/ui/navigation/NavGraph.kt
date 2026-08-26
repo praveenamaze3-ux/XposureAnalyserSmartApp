@@ -15,12 +15,14 @@ import com.example.xposuredetectorsmart.ui.dashboard.DashboardScreen
 import com.example.xposuredetectorsmart.ui.qr.QRScannerScreen
 import com.example.xposuredetectorsmart.ui.results.ResultsScreen
 import com.example.xposuredetectorsmart.ui.settings.SettingsScreen
+import com.example.xposuredetectorsmart.ui.strip.StripScannerScreen
 import com.example.xposuredetectorsmart.viewmodel.DoseAnalysisViewModel
 import com.example.xposuredetectorsmart.viewmodel.ShiftState
 import com.example.xposuredetectorsmart.viewmodel.SharedShiftViewModel
 
 object Routes {
     const val QR_SCANNER = "qr_scanner"
+    const val STRIP_SCANNER = "strip_scanner"
     const val CAMERA = "camera"
     const val RESULTS = "results"
     const val DASHBOARD = "dashboard"
@@ -39,9 +41,25 @@ fun H2SNavGraph(navController: NavHostController = rememberNavController()) {
         composable(Routes.QR_SCANNER) {
             QRScannerScreen(
                 sharedShiftViewModel = sharedShiftViewModel,
-                onScanned = {
-                    navController.navigate(Routes.CAMERA) {
+                onWorkerIdentified = {
+                    navController.navigate(Routes.STRIP_SCANNER) {
                         popUpTo(Routes.QR_SCANNER) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(Routes.STRIP_SCANNER) {
+            StripScannerScreen(
+                sharedShiftViewModel = sharedShiftViewModel,
+                onPaired = {
+                    navController.navigate(Routes.CAMERA) {
+                        popUpTo(Routes.STRIP_SCANNER) { inclusive = true }
+                    }
+                },
+                onNeedWorker = {
+                    navController.navigate(Routes.QR_SCANNER) {
+                        popUpTo(0) { inclusive = true }
                     }
                 },
             )

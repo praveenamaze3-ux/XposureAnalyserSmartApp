@@ -16,6 +16,7 @@ data class DoseLog(
     val imageHash: String,
     val correctionApplied: String, // JSON-encoded correction matrix/scale factors
     val location: String,
+    val stripSerial: String, // identifies the specific disposable strip this reading came from
     val isSynced: Boolean = false,
     val syncTimestamp: Long? = null,
 )

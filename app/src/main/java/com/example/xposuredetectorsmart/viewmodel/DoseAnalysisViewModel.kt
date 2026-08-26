@@ -49,7 +49,7 @@ class DoseAnalysisViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    fun processCapture(bitmap: Bitmap, workerId: String, shiftDate: String, location: String) {
+    fun processCapture(bitmap: Bitmap, workerId: String, shiftDate: String, location: String, stripSerial: String) {
         _uiState.value = UiState.Loading
         viewModelScope.launch {
             val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
@@ -87,6 +87,7 @@ class DoseAnalysisViewModel @Inject constructor(
                         imageHash = imageHash,
                         correctionApplied = correctionJson,
                         location = location,
+                        stripSerial = stripSerial,
                     )
 
                     val id = doseRepository.saveDoseLog(log)
@@ -99,11 +100,20 @@ class DoseAnalysisViewModel @Inject constructor(
                         timestamp = timestamp,
                     )
 
-                    auditRepository.log(AuditAction.CAPTURE_IMAGE, workerId, mapOf("imageHash" to imageHash))
+                    auditRepository.log(
+                        AuditAction.CAPTURE_IMAGE,
+                        workerId,
+                        mapOf("imageHash" to imageHash, "stripSerial" to stripSerial),
+                    )
                     auditRepository.log(
                         AuditAction.CALCULATE_DOSE,
                         workerId,
-                        mapOf("ppm" to outcome.ppm, "confidence" to outcome.confidence, "doseLogId" to id),
+                        mapOf(
+                            "ppm" to outcome.ppm,
+                            "confidence" to outcome.confidence,
+                            "doseLogId" to id,
+                            "stripSerial" to stripSerial,
+                        ),
                     )
 
                     _uiState.value = UiState.Success(

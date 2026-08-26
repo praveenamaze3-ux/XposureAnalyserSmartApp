@@ -56,6 +56,7 @@ class QRScannerViewModel @Inject constructor(
                     shiftDate = data.date.format(DateTimeFormatter.ISO_LOCAL_DATE),
                     locationCode = data.location,
                     shiftType = data.shift,
+                    stripSerial = "", // paired in StripScannerScreen once the disposable strip is scanned
                     phoneModel = "${Build.MANUFACTURER} ${Build.MODEL}",
                     appVersion = BuildConfig.VERSION_NAME,
                     scanTimestamp = System.currentTimeMillis(),

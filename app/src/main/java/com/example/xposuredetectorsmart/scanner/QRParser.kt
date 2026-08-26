@@ -54,4 +54,27 @@ class QRParser @Inject constructor() {
             shift = shift.trim(),
         )
     }
+
+    /**
+     * Parses the disposable-strip QR payload format: "h2s-strip:STRIP_{SERIAL}"
+     * e.g. "h2s-strip:STRIP_10231"
+     */
+    fun parseStrip(raw: String): StripData {
+        val trimmed = raw.trim()
+        if (!trimmed.startsWith(Constants.QR_STRIP_PREFIX)) {
+            throw QRParseException("QR payload missing '${Constants.QR_STRIP_PREFIX}' prefix")
+        }
+
+        val payload = trimmed.removePrefix(Constants.QR_STRIP_PREFIX)
+        if (!payload.startsWith(Constants.QR_STRIP_SERIAL_PREFIX)) {
+            throw QRParseException("Strip serial must start with '${Constants.QR_STRIP_SERIAL_PREFIX}'")
+        }
+
+        val serial = payload.trim()
+        if (serial.removePrefix(Constants.QR_STRIP_SERIAL_PREFIX).isEmpty()) {
+            throw QRParseException("Strip serial is empty")
+        }
+
+        return StripData(stripSerial = serial)
+    }
 }

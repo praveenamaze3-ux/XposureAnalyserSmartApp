@@ -8,7 +8,10 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +19,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,7 +41,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.xposuredetectorsmart.ui.components.CameraHudOverlay
 import com.example.xposuredetectorsmart.ui.components.CameraPermissionGate
+import com.example.xposuredetectorsmart.ui.components.ScanFrame
+import com.example.xposuredetectorsmart.ui.components.TelemetryText
+import com.example.xposuredetectorsmart.ui.theme.HudLabelStyle
+import com.example.xposuredetectorsmart.ui.theme.StatusWarning
 import com.example.xposuredetectorsmart.utils.BitmapUtils
 import com.example.xposuredetectorsmart.utils.Constants
 import com.example.xposuredetectorsmart.viewmodel.DoseAnalysisViewModel
@@ -79,27 +87,35 @@ fun CameraScreen(
     CameraPermissionGate {
         Box(modifier = Modifier.fillMaxSize()) {
             CaptureCameraPreview(onImageCaptureReady = { imageCapture = it })
+            CameraHudOverlay(accentColor = StatusWarning, modifier = Modifier.align(Alignment.Center))
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(Constants.STRIP_FRAME_SIZE_DP.dp)
-                    .border(3.dp, Color.Yellow, RoundedCornerShape(8.dp)),
+            ScanFrame(
+                accentColor = StatusWarning,
+                modifier = Modifier.align(Alignment.Center),
+                size = Constants.STRIP_FRAME_SIZE_DP.dp,
+                showScanLine = false,
             )
 
             Surface(
                 color = Color.Black.copy(alpha = 0.55f),
+                shape = RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp),
                 modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        "Worker ${activeShift.context.workerId} | ${activeShift.context.shiftType} | ${activeShift.context.locationCode}",
+                        "WORKER ${activeShift.context.workerId} | ${activeShift.context.shiftType} | ${activeShift.context.locationCode}",
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize),
                     )
                     if (batchCount > 0) {
-                        Text("Batch captures this shift: $batchCount", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            "BATCH CAPTURES THIS SHIFT: $batchCount",
+                            color = Color.White,
+                            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelMedium.fontSize),
+                        )
                     }
+                    androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 4.dp))
+                    TelemetryText(text = "Live feed", color = StatusWarning)
                 }
             }
 
@@ -110,10 +126,15 @@ fun CameraScreen(
             ) {
                 if (isCapturing) {
                     CircularProgressIndicator(color = Color.White)
-                    Text("Processing...", color = Color.White)
+                    TelemetryText(text = "Processing", color = Color.White)
                 } else {
-                    Button(onClick = {
-                        val capture = imageCapture ?: return@Button
+                    Text(
+                        "CAPTURE STRIP",
+                        color = Color.White,
+                        style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelLarge.fontSize),
+                    )
+                    ShutterButton(onClick = {
+                        val capture = imageCapture ?: return@ShutterButton
                         viewModel.onCaptureStarted()
                         capture.takePicture(
                             cameraExecutor,
@@ -127,6 +148,7 @@ fun CameraScreen(
                                         workerId = activeShift.context.workerId,
                                         shiftDate = activeShift.context.shiftDate,
                                         location = activeShift.context.locationCode,
+                                        stripSerial = activeShift.context.stripSerial,
                                     )
                                 }
 
@@ -135,12 +157,32 @@ fun CameraScreen(
                                 }
                             },
                         )
-                    }) {
-                        Text("Capture Strip")
-                    }
+                    })
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShutterButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(76.dp)
+            .border(4.dp, Color.White, CircleShape)
+            .padding(6.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White, CircleShape),
+        )
     }
 }
 

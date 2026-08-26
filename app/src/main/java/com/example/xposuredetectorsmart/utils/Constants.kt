@@ -3,9 +3,13 @@ package com.example.xposuredetectorsmart.utils
 object Constants {
     const val DATABASE_NAME = "h2s_dose_reader.db"
 
-    // QR payload format: "h2s-dose:WRK_{ID}|{DATE}|{LOCATION}|{SHIFT_TYPE}"
+    // Wristband QR payload format: "h2s-dose:WRK_{ID}|{DATE}|{LOCATION}|{SHIFT_TYPE}"
     const val QR_PREFIX = "h2s-dose:"
     const val QR_WORKER_PREFIX = "WRK_"
+
+    // Disposable strip QR payload format: "h2s-strip:STRIP_{SERIAL}"
+    const val QR_STRIP_PREFIX = "h2s-strip:"
+    const val QR_STRIP_SERIAL_PREFIX = "STRIP_"
 
     // OSHA exposure thresholds (ppm), used for badges + alerts + PDF report reference lines.
     const val OSHA_PEL_8HR = 10.0

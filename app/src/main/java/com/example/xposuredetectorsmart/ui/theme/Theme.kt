@@ -9,35 +9,52 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = SignalCyan,
+    onPrimary = Color.Black,
+    secondary = SignalCyanDim,
+    onSecondary = Color.Black,
+    tertiary = StatusWarning,
+    onTertiary = Color.Black,
+    error = StatusCritical,
+    onError = Color.White,
+    background = SurfaceDarkBg,
+    onBackground = OnSurfaceDark,
+    surface = SurfaceDarkCard,
+    onSurface = OnSurfaceDark,
+    surfaceVariant = SurfaceDarkCard,
+    onSurfaceVariant = OnSurfaceDarkMuted,
+    outline = SurfaceDarkOutline,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = SignalCyanDim,
     onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    secondary = SignalCyan,
+    onSecondary = Color.Black,
+    tertiary = StatusWarning,
+    onTertiary = Color.Black,
+    error = StatusCritical,
+    onError = Color.White,
+    background = SurfaceLightBg,
+    onBackground = OnSurfaceLight,
+    surface = SurfaceLightCard,
+    onSurface = OnSurfaceLight,
+    surfaceVariant = SurfaceLightCard,
+    onSurfaceVariant = OnSurfaceLightMuted,
+    outline = SurfaceLightOutline,
 )
 
 @Composable
 fun XposureDetectorSmartTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Dynamic color is intentionally off by default: this app has its own brand
+    // palette (Signal Cyan) and letting Android 12+ wallpaper-derived colors take
+    // over would hide it on most devices.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -53,6 +70,7 @@ fun XposureDetectorSmartTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = AppShapes,
         content = content
     )
 }
