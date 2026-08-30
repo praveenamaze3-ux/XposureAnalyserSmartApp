@@ -5,7 +5,9 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import com.example.xposuredetectorsmart.database.entities.DoseLog
+import com.example.xposuredetectorsmart.imageprocessing.H2SRiskLevel
 import com.example.xposuredetectorsmart.utils.Constants
+import com.example.xposuredetectorsmart.utils.DoseAggregation
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -17,18 +19,20 @@ import javax.inject.Inject
  * open-sourcing this app or a commercial license - PdfDocument avoids that entirely.)
  */
 class PdfGenerator @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
 
     private val pageWidth = 595 // A4 at 72dpi
     private val pageHeight = 842
 
+    /** [shiftDurationHours] is the worker's actual elapsed work time (for risk classification), defaulting to the app's configured shift length when the real value isn't available at the call site. */
     fun generate(
         workerId: String,
         department: String,
         shiftDate: String,
         location: String,
         logs: List<DoseLog>,
+        shiftDurationHours: Double = Constants.DEFAULT_SHIFT_DURATION_HOURS.toDouble(),
     ): File {
         val document = PdfDocument()
         val titlePaint = Paint().apply { textSize = 20f; isFakeBoldText = true; color = Color.BLACK }
@@ -37,9 +41,9 @@ class PdfGenerator @Inject constructor(
         val footerPaint = Paint().apply { textSize = 9f; color = Color.GRAY }
         val linePaint = Paint().apply { color = Color.LTGRAY; strokeWidth = 1f }
 
-        val rows = ReportFormatter.toRows(logs)
-        val cumulative = logs.sumOf { it.dosePpm }
-        val overallStatus = ReportFormatter.statusFor(cumulative)
+        val rows = ReportFormatter.toRows(logs, shiftDurationHours)
+        val cumulative = DoseAggregation.cumulativeDose(logs)
+        val overallStatus = ReportFormatter.statusFor(cumulative, shiftDurationHours)
 
         var pageNumber = 1
         var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
@@ -53,7 +57,11 @@ class PdfGenerator @Inject constructor(
         canvas.drawText("Shift date: $shiftDate    Location: $location", 40f, y, bodyPaint)
         y += 18f
         canvas.drawText(
-            "Cumulative exposure: %.2f ppm    Status: %s".format(cumulative, overallStatus.name),
+            "Cumulative exposure: %.2f ppm·hr    Shift avg: %.2f ppm    Status: %s".format(
+                cumulative,
+                cumulative / shiftDurationHours,
+                overallStatus.name,
+            ),
             40f,
             y,
             bodyPaint,
@@ -64,7 +72,7 @@ class PdfGenerator @Inject constructor(
 
         if (logs.isNotEmpty()) {
             val chartHeight = 160f
-            drawCumulativeChart(canvas, logs.sortedBy { it.timestamp }, top = y, height = chartHeight)
+            drawCumulativeChart(canvas, logs.sortedBy { it.timestamp }, top = y, height = chartHeight, shiftDurationHours = shiftDurationHours)
             y += chartHeight + 24f
         }
 
@@ -89,13 +97,7 @@ class PdfGenerator @Inject constructor(
             canvas.drawText(row.timestamp, 40f, y, bodyPaint)
             canvas.drawText("%.2f".format(row.dosePpm), 220f, y, bodyPaint)
             canvas.drawText("%.0f%%".format(row.confidence * 100), 320f, y, bodyPaint)
-            canvas.drawText(row.status.name, 440f, y, bodyPaint.apply {
-                color = when (row.status) {
-                    ExposureStatus.NORMAL -> Color.rgb(0, 128, 0)
-                    ExposureStatus.ALERT -> Color.rgb(200, 140, 0)
-                    ExposureStatus.CRITICAL -> Color.RED
-                }
-            })
+            canvas.drawText(row.status.name, 440f, y, bodyPaint.apply { color = riskColor(row.status) })
             bodyPaint.color = Color.BLACK
             y += 18f
         }
@@ -104,7 +106,8 @@ class PdfGenerator @Inject constructor(
         canvas.drawLine(40f, y, pageWidth - 40f, y, linePaint)
         y += 20f
         canvas.drawText(
-            "OSHA reference: PEL (8-hr TWA) = ${Constants.OSHA_PEL_8HR} ppm, IDLH = ${Constants.IDLH_PPM} ppm.",
+            "Reference (shift-average ppm): Moderate >= ${Constants.RISK_MODERATE_MIN_PPM}, High >= ${Constants.RISK_HIGH_MIN_PPM}, " +
+                "Dangerous >= ${Constants.RISK_DANGEROUS_MIN_PPM}.",
             40f,
             y,
             footerPaint,
@@ -128,24 +131,27 @@ class PdfGenerator @Inject constructor(
         return outputFile
     }
 
+    private fun riskColor(risk: H2SRiskLevel): Int = Color.parseColor(risk.colorHex)
+
     private fun drawFooter(canvas: android.graphics.Canvas, paint: Paint, pageNumber: Int) {
         canvas.drawText("Page $pageNumber", (pageWidth - 80).toFloat(), (pageHeight - 20).toFloat(), paint)
     }
 
-    /** Self-contained cumulative-exposure line chart with OSHA PEL/IDLH reference lines. */
+    /** Self-contained cumulative-exposure line chart with Moderate/High/Dangerous reference lines. */
     private fun drawCumulativeChart(
         canvas: android.graphics.Canvas,
         sortedLogs: List<DoseLog>,
         top: Float,
         height: Float,
+        shiftDurationHours: Double,
     ) {
         val left = 40f
         val right = pageWidth - 40f
         val bottom = top + height
 
-        var running = 0.0
-        val cumulativeSeries = sortedLogs.map { running += it.dosePpm; running }
-        val maxValue = (cumulativeSeries.maxOrNull() ?: 0.0).coerceAtLeast(Constants.IDLH_PPM * 1.1)
+        val cumulativeSeries = DoseAggregation.runningCumulative(sortedLogs)
+        val dangerousDoseLine = Constants.RISK_DANGEROUS_MIN_PPM * shiftDurationHours
+        val maxValue = (cumulativeSeries.maxOrNull() ?: 0.0).coerceAtLeast(dangerousDoseLine * 1.1)
 
         val axisPaint = Paint().apply { color = Color.LTGRAY; strokeWidth = 1f }
         val linePaint = Paint().apply { color = Color.rgb(30, 100, 200); strokeWidth = 2.5f; isAntiAlias = true }
@@ -157,13 +163,15 @@ class PdfGenerator @Inject constructor(
 
         fun yFor(value: Double): Float = (bottom - (value / maxValue * height)).toFloat()
 
-        val pelY = yFor(Constants.OSHA_PEL_8HR)
-        canvas.drawLine(left, pelY, right, pelY, refPaint)
-        canvas.drawText("PEL ${Constants.OSHA_PEL_8HR.toInt()} ppm", left + 4, pelY - 3, labelPaint)
+        // Reference lines are expressed as the cumulative dose (ppm·hr) that puts the shift
+        // average right at each risk threshold, given this worker's configured shift length.
+        val highY = yFor(Constants.RISK_HIGH_MIN_PPM * shiftDurationHours)
+        canvas.drawLine(left, highY, right, highY, refPaint)
+        canvas.drawText("High (${Constants.RISK_HIGH_MIN_PPM} ppm avg)", left + 4, highY - 3, labelPaint)
 
-        val idlhY = yFor(Constants.IDLH_PPM)
-        canvas.drawLine(left, idlhY, right, idlhY, refPaint)
-        canvas.drawText("IDLH ${Constants.IDLH_PPM.toInt()} ppm", left + 4, idlhY - 3, labelPaint)
+        val dangerousY = yFor(dangerousDoseLine)
+        canvas.drawLine(left, dangerousY, right, dangerousY, refPaint)
+        canvas.drawText("Dangerous (${Constants.RISK_DANGEROUS_MIN_PPM} ppm avg)", left + 4, dangerousY - 3, labelPaint)
 
         if (cumulativeSeries.size < 2) return
 

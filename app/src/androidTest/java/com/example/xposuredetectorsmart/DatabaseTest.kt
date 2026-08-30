@@ -6,7 +6,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.xposuredetectorsmart.database.AppDatabase
 import com.example.xposuredetectorsmart.database.entities.AuditAction
 import com.example.xposuredetectorsmart.database.entities.AuditLog
-import com.example.xposuredetectorsmart.database.entities.ColorProfile
 import com.example.xposuredetectorsmart.database.entities.DoseLog
 import com.example.xposuredetectorsmart.database.entities.WorkerContext
 import kotlinx.coroutines.flow.first
@@ -49,6 +48,7 @@ class DatabaseTest {
                 imageHash = "hash",
                 correctionApplied = "{}",
                 location = "LocationA",
+                stripSerial = "CAP_1000",
             ),
         )
 
@@ -59,14 +59,17 @@ class DatabaseTest {
     }
 
     @Test
-    fun cumulativeDoseSumsAllLogsForShift() = runBlocking {
+    fun cumulativeDoseSumsEachDistinctStripsPeakReading() = runBlocking {
         val dao = database.doseLogDao()
-        dao.insert(baseLog(dosePpm = 10.0))
-        dao.insert(baseLog(dosePpm = 15.0))
-        dao.insert(baseLog(workerId = "WRK_OTHER", dosePpm = 999.0))
+        // Two re-checks of the same strip - only the peak (15.0) should count.
+        dao.insert(baseLog(dosePpm = 10.0, stripSerial = "STRIP_1"))
+        dao.insert(baseLog(dosePpm = 15.0, stripSerial = "STRIP_1"))
+        // A second, distinct strip adds on top.
+        dao.insert(baseLog(dosePpm = 7.0, stripSerial = "STRIP_2"))
+        dao.insert(baseLog(workerId = "WRK_OTHER", dosePpm = 999.0, stripSerial = "STRIP_1"))
 
         val total = dao.observeCumulativeDose("WRK_1", "2026-08-25").first()
-        assertEquals(25.0, total, 0.001)
+        assertEquals(22.0, total, 0.001)
     }
 
     @Test
@@ -78,17 +81,6 @@ class DatabaseTest {
         val stored = dao.getById(id)
         assertTrue(stored?.isSynced == true)
         assertEquals(5000L, stored?.syncTimestamp)
-    }
-
-    @Test
-    fun colorProfileHistoryOrdersByCalibrationDateDescending() = runBlocking {
-        val dao = database.colorProfileDao()
-        dao.insert(colorProfile(calibrationDate = 1L))
-        dao.insert(colorProfile(calibrationDate = 3L))
-        dao.insert(colorProfile(calibrationDate = 2L))
-
-        val history = dao.getRecentProfiles("Pixel 8", "WRK_1", limit = 10)
-        assertEquals(listOf(3L, 2L, 1L), history.map { it.calibrationDate })
     }
 
     @Test
@@ -112,14 +104,14 @@ class DatabaseTest {
     @Test
     fun workerContextTracksLatestScanPerWorker() = runBlocking {
         val dao = database.workerContextDao()
-        dao.insert(workerContext(scanTimestamp = 100L))
-        dao.insert(workerContext(scanTimestamp = 200L))
+        dao.insert(workerContext(shiftStartedAt = 100L))
+        dao.insert(workerContext(shiftStartedAt = 200L))
 
         val latest = dao.getLatestForWorker("WRK_1")
-        assertEquals(200L, latest?.scanTimestamp)
+        assertEquals(200L, latest?.shiftStartedAt)
     }
 
-    private fun baseLog(workerId: String = "WRK_1", dosePpm: Double = 10.0) = DoseLog(
+    private fun baseLog(workerId: String = "WRK_1", dosePpm: Double = 10.0, stripSerial: String = "CAP_TEST") = DoseLog(
         workerId = workerId,
         shiftDate = "2026-08-25",
         dosePpm = dosePpm,
@@ -129,26 +121,17 @@ class DatabaseTest {
         imageHash = "hash",
         correctionApplied = "{}",
         location = "LocationA",
+        stripSerial = stripSerial,
     )
 
-    private fun colorProfile(calibrationDate: Long) = ColorProfile(
-        deviceModel = "Pixel 8",
+    private fun workerContext(shiftStartedAt: Long) = WorkerContext(
         workerId = "WRK_1",
-        whiteR = 240f, whiteG = 240f, whiteB = 240f,
-        greyR = 128f, greyG = 128f, greyB = 128f,
-        calibrationDate = calibrationDate,
-        calibrationCount = 1,
-        meanSquareError = 0.0,
-        isActive = true,
-    )
-
-    private fun workerContext(scanTimestamp: Long) = WorkerContext(
-        workerId = "WRK_1",
+        industryId = "acme_chemicals",
         shiftDate = "2026-08-25",
         locationCode = "LocationA",
-        shiftType = "morning",
         phoneModel = "Pixel 8",
         appVersion = "1.0",
-        scanTimestamp = scanTimestamp,
+        shiftStartedAt = shiftStartedAt,
+        shiftExpiresAt = shiftStartedAt + 8 * 60 * 60 * 1000L,
     )
 }

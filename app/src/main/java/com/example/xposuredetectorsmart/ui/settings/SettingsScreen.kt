@@ -16,14 +16,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -37,11 +41,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.xposuredetectorsmart.repository.ThemeMode
 import com.example.xposuredetectorsmart.ui.components.AppHeader
 import com.example.xposuredetectorsmart.ui.components.GlassCard
 import com.example.xposuredetectorsmart.ui.theme.HudLabelStyle
+import com.example.xposuredetectorsmart.utils.DateUtils
 import com.example.xposuredetectorsmart.viewmodel.ShiftState
 import com.example.xposuredetectorsmart.viewmodel.SharedShiftViewModel
 
@@ -49,6 +54,9 @@ import com.example.xposuredetectorsmart.viewmodel.SharedShiftViewModel
 fun SettingsScreen(
     sharedShiftViewModel: SharedShiftViewModel,
     onViewAuditTrail: () -> Unit,
+    onViewDoseLogHistory: () -> Unit,
+    onRegisterWorker: () -> Unit,
+    onBackToScanner: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -74,7 +82,19 @@ fun SettingsScreen(
 
     com.example.xposuredetectorsmart.ui.components.HudBackground {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
-        AppHeader(title = "Settings", icon = Icons.Filled.Settings)
+        AppHeader(
+            title = "Settings",
+            icon = Icons.Filled.Settings,
+            trailing = {
+                IconButton(onClick = onBackToScanner) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back to scanner",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            },
+        )
         Spacer(Modifier.height(20.dp))
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -106,11 +126,13 @@ fun SettingsScreen(
                 enabled = activeShift != null && exportState !is ExportState.Exporting,
                 onClick = {
                     activeShift?.let {
+                        val shiftDurationHours = DateUtils.elapsedHours(it.context.shiftStartedAt)
                         viewModel.exportShiftReport(
                             workerId = it.context.workerId,
                             department = "Field Operations",
                             shiftDate = it.context.shiftDate,
                             location = it.context.locationCode,
+                            shiftDurationHours = shiftDurationHours,
                         )
                     }
                 },
@@ -125,6 +147,10 @@ fun SettingsScreen(
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             SettingsActionRow(icon = Icons.Filled.History, label = "View Audit Trail", onClick = onViewAuditTrail)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            SettingsActionRow(icon = Icons.Filled.Assessment, label = "View Dose Log History", onClick = onViewDoseLogHistory)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            SettingsActionRow(icon = Icons.Filled.PersonAdd, label = "Register Worker", onClick = onRegisterWorker)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             SettingsActionRow(
                 icon = Icons.AutoMirrored.Filled.Logout,

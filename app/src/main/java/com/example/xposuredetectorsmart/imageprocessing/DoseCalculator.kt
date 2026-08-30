@@ -1,58 +1,137 @@
 package com.example.xposuredetectorsmart.imageprocessing
 
-import com.example.xposuredetectorsmart.utils.ColorUtils
-import com.example.xposuredetectorsmart.utils.RgbColor
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Rect
+import com.example.xposuredetectorsmart.utils.Constants
 import javax.inject.Inject
+import kotlin.math.log10
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.round
 
-data class InterpolatedDose(
-    val ppm: Double,
-    val nearestPpm: Double,
-    val nearestDistance: Double,
-    val secondPpm: Double,
-    val secondDistance: Double,
+/** Risk classification bands, based on shift-average ppm concentration. */
+enum class H2SRiskLevel(val description: String, val colorHex: String) {
+    SAFE("Normal / Safe (< 1.0 ppm)", "#4CAF50"),
+    MODERATE("Caution: ACGIH TLV Exceeded (1.0 - 5.0 ppm)", "#FF9800"),
+    HIGH("Warning: Approaching OSHA PEL (5.0 - 10.0 ppm)", "#FF5722"),
+    DANGEROUS("DANGER: OSHA PEL / Ceiling Exceeded (> 10.0 ppm)", "#F44336"),
+}
+
+data class DoseResult(
+    val opticalDensity: Double,
+    val totalDosePpmHours: Double,
+    val shiftAveragePpm: Double,
+    val eightHourTwaPpm: Double,
+    val riskLevel: H2SRiskLevel,
+    val warningMessage: String?,
+    /** How many reference-curve anchors the k-NN regression averaged over for this reading. */
+    val referencePointsUsed: Int,
+    /** True if the optical density fell outside the reference curve's calibrated range. */
+    val extrapolated: Boolean,
 )
 
 /**
- * RGB -> PPM lookup + linear interpolation.
+ * H2S exposure engine based on Beer-Lambert diffuse-reflectance optical density between a blank
+ * (White Ref) zone and the exposed strip zone. The blank/sample luminance ratio inherently
+ * cancels out ambient lighting variance without a separate color-correction step.
  *
- * NOTE: the reference colors below are placeholder values describing a plausible monotonic
- * white/tan -> dark-brown darkening curve for a lead-acetate style H2S strip. Replace with the
- * actual manufacturer-calibrated RGB reference swatches for the strip lot in production use.
+ * The optical density -> dose mapping is a k-NN inverse-distance-weighted regression over a
+ * learned reference table (see [OdKnnRegressor], [ReferenceCurveLoader]), rather than a fixed
+ * regression formula - swap in denser, manufacturer-calibrated anchor points without touching
+ * this class.
  */
-class DoseCalculator @Inject constructor() {
+class DoseCalculator @Inject constructor(private val referenceCurveLoader: ReferenceCurveLoader) {
 
-    private val referenceTable: List<Pair<Double, RgbColor>> = listOf(
-        10.0 to RgbColor(210.0, 195.0, 170.0),
-        25.0 to RgbColor(180.0, 150.0, 120.0),
-        50.0 to RgbColor(140.0, 105.0, 80.0),
-        100.0 to RgbColor(95.0, 65.0, 50.0),
-        150.0 to RgbColor(55.0, 35.0, 30.0),
-        200.0 to RgbColor(25.0, 15.0, 15.0),
-    )
+    /** [shiftDurationHours] is the worker's actual elapsed work time since shift start, not the industry's configured/scheduled shift length. */
+    fun calculate(bitmap: Bitmap, blankZone: Rect, sampleZone: Rect, shiftDurationHours: Double): DoseResult {
+        require(shiftDurationHours > 0.0) { "Shift duration must be greater than zero." }
 
-    fun calculate(inkColor: RgbColor): InterpolatedDose {
-        val distances = referenceTable
-            .map { (ppm, color) -> ppm to ColorUtils.distance(inkColor, color) }
-            .sortedBy { it.second }
+        val yBlank = robustLuminance(bitmap, blankZone)
+        val ySample = robustLuminance(bitmap, sampleZone)
 
-        val nearest = distances[0]
-        val second = distances.getOrElse(1) { distances[0] }
+        val clampedSample = max(0.001, min(yBlank, ySample))
+        val clampedBlank = max(0.01, yBlank)
 
-        if (nearest.second < 1e-6) {
-            return InterpolatedDose(nearest.first, nearest.first, 0.0, second.first, second.second)
+        val opticalDensity = log10(clampedBlank / clampedSample)
+
+        val belowDetectionLimit = opticalDensity < Constants.MIN_DETECTABLE_OPTICAL_DENSITY
+        val prediction = OdKnnRegressor.predict(referenceCurveLoader.referenceTable, opticalDensity)
+        val dose = if (belowDetectionLimit) 0.0 else prediction.ppm.coerceAtLeast(0.0)
+
+        val shiftAvgPpm = dose / shiftDurationHours
+        val eightHourTwa = dose / 8.0
+
+        val risk = when {
+            shiftAvgPpm < 1.0 -> H2SRiskLevel.SAFE
+            shiftAvgPpm <= 5.0 -> H2SRiskLevel.MODERATE
+            shiftAvgPpm <= 10.0 -> H2SRiskLevel.HIGH
+            else -> H2SRiskLevel.DANGEROUS
         }
 
-        val dist1 = nearest.second
-        val dist2 = second.second.coerceAtLeast(1e-6)
+        val warning = when {
+            shiftAvgPpm >= 10.0 -> "Evacuate area and report to site safety officer immediately."
+            belowDetectionLimit -> "Stain below detectable limit. Normal atmosphere."
+            prediction.extrapolated -> "Reading is outside the calibrated reference range; treat with reduced confidence."
+            else -> null
+        }
 
-        val ppm = (nearest.first * dist2 + second.first * dist1) / (dist1 + dist2)
-
-        return InterpolatedDose(
-            ppm = ppm,
-            nearestPpm = nearest.first,
-            nearestDistance = dist1,
-            secondPpm = second.first,
-            secondDistance = dist2,
+        return DoseResult(
+            opticalDensity = roundTo(opticalDensity, 3),
+            totalDosePpmHours = roundTo(dose, 2),
+            shiftAveragePpm = roundTo(shiftAvgPpm, 2),
+            eightHourTwaPpm = roundTo(eightHourTwa, 2),
+            riskLevel = risk,
+            warningMessage = warning,
+            referencePointsUsed = prediction.neighborsUsed,
+            extrapolated = prediction.extrapolated,
         )
+    }
+
+    /** Trimmed-mean CIE 1931 relative luminance over an ROI, rejecting glare/highlight pixels. */
+    private fun robustLuminance(bitmap: Bitmap, roi: Rect): Double {
+        val left = roi.left.coerceIn(0, bitmap.width - 1)
+        val top = roi.top.coerceIn(0, bitmap.height - 1)
+        val right = roi.right.coerceIn(left + 1, bitmap.width)
+        val bottom = roi.bottom.coerceIn(top + 1, bitmap.height)
+
+        val luminances = mutableListOf<Double>()
+        for (y in top until bottom) {
+            for (x in left until right) {
+                val pixel = bitmap.getPixel(x, y)
+                val r = Color.red(pixel) / 255.0
+                val g = Color.green(pixel) / 255.0
+                val b = Color.blue(pixel) / 255.0
+
+                // Glare / highlight rejection (> 96% saturated)
+                if (r > 0.96 && g > 0.96 && b > 0.96) continue
+
+                val rLin = sRgbToLinear(r)
+                val gLin = sRgbToLinear(g)
+                val bLin = sRgbToLinear(b)
+
+                luminances.add(0.2126 * rLin + 0.7152 * gLin + 0.0722 * bLin)
+            }
+        }
+
+        if (luminances.isEmpty()) return 1.0
+
+        luminances.sort()
+        val trimCount = (luminances.size * 0.10).toInt()
+        val trimmed = if (luminances.size - 2 * trimCount > 0) {
+            luminances.subList(trimCount, luminances.size - trimCount)
+        } else {
+            luminances
+        }
+        return trimmed.average()
+    }
+
+    private fun sRgbToLinear(channel: Double): Double =
+        if (channel <= 0.04045) channel / 12.92 else ((channel + 0.055) / 1.055).pow(2.4)
+
+    private fun roundTo(value: Double, decimals: Int): Double {
+        val factor = 10.0.pow(decimals)
+        return round(value * factor) / factor
     }
 }

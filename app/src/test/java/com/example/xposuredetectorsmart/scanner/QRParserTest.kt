@@ -3,7 +3,6 @@ package com.example.xposuredetectorsmart.scanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
-import java.time.LocalDate
 
 class QRParserTest {
 
@@ -11,52 +10,51 @@ class QRParserTest {
 
     @Test
     fun `parses a well-formed payload`() {
-        val data = parser.parse("h2s-dose:WRK_4838|2026-08-25|LocationA|morning")
+        val data = parser.parse("h2s-worker:acme_chemicals:WRK_4838")
 
+        assertEquals("acme_chemicals", data.industryId)
         assertEquals("WRK_4838", data.workerId)
-        assertEquals(LocalDate.of(2026, 8, 25), data.date)
-        assertEquals("LocationA", data.location)
-        assertEquals("morning", data.shift)
     }
 
     @Test
     fun `trims surrounding whitespace`() {
-        val data = parser.parse("  h2s-dose:WRK_1|2026-01-01|Loc|shift1  ")
+        val data = parser.parse("  h2s-worker:acme_chemicals:WRK_1  ")
+        assertEquals("acme_chemicals", data.industryId)
         assertEquals("WRK_1", data.workerId)
     }
 
     @Test
     fun `rejects payload missing the prefix`() {
         assertThrows(QRParseException::class.java) {
-            parser.parse("WRK_4838|2026-08-25|LocationA|morning")
+            parser.parse("acme_chemicals:WRK_4838")
         }
     }
 
     @Test
     fun `rejects payload with wrong field count`() {
         assertThrows(QRParseException::class.java) {
-            parser.parse("h2s-dose:WRK_4838|2026-08-25|LocationA")
+            parser.parse("h2s-worker:acme_chemicals:WRK_4838:extra")
         }
     }
 
     @Test
-    fun `rejects worker id missing WRK_ prefix`() {
+    fun `rejects payload with too few fields`() {
         assertThrows(QRParseException::class.java) {
-            parser.parse("h2s-dose:4838|2026-08-25|LocationA|morning")
+            parser.parse("h2s-worker:acme_chemicals")
         }
     }
 
     @Test
-    fun `rejects an invalid date`() {
+    fun `rejects blank industry id`() {
         assertThrows(QRParseException::class.java) {
-            parser.parse("h2s-dose:WRK_4838|not-a-date|LocationA|morning")
+            parser.parse("h2s-worker::WRK_4838")
         }
     }
 
     @Test
-    fun `rejects blank location`() {
+    fun `rejects blank worker id`() {
         assertThrows(QRParseException::class.java) {
-            parser.parse("h2s-dose:WRK_4838|2026-08-25||morning")
+            parser.parse("h2s-worker:acme_chemicals:")
         }
     }
 }

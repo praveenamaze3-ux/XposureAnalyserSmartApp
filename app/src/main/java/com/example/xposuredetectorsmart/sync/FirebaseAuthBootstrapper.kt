@@ -20,4 +20,14 @@ class FirebaseAuthBootstrapper @Inject constructor(
             true
         }.onFailure { Timber.w(it, "Anonymous sign-in failed") }.getOrDefault(false)
     }
+
+    /**
+     * Like [ensureSignedIn] but rethrows the underlying failure instead of swallowing it, for
+     * callers on an interactive screen (e.g. worker registration) that should show the real
+     * reason to the user rather than a generic message.
+     */
+    suspend fun ensureSignedInOrThrow() {
+        if (auth.currentUser != null) return
+        auth.signInAnonymously().await()
+    }
 }

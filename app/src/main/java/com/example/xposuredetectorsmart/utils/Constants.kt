@@ -3,32 +3,35 @@ package com.example.xposuredetectorsmart.utils
 object Constants {
     const val DATABASE_NAME = "h2s_dose_reader.db"
 
-    // Wristband QR payload format: "h2s-dose:WRK_{ID}|{DATE}|{LOCATION}|{SHIFT_TYPE}"
-    const val QR_PREFIX = "h2s-dose:"
-    const val QR_WORKER_PREFIX = "WRK_"
+    // Permanent wristband QR payload format: "h2s-worker:{industryId}:{workerId}"
+    // Encodes only an opaque worker reference - all mutable info (name, status, shift schedule)
+    // is resolved from the worker_profiles/industries records at scan time, so this QR is printed
+    // once at registration and reused for the worker's entire tenure at that industry.
+    const val QR_WORKER_PREFIX_V2 = "h2s-worker:"
 
-    // Disposable strip QR payload format: "h2s-strip:STRIP_{SERIAL}"
-    const val QR_STRIP_PREFIX = "h2s-strip:"
-    const val QR_STRIP_SERIAL_PREFIX = "STRIP_"
-
-    // OSHA exposure thresholds (ppm), used for badges + alerts + PDF report reference lines.
-    const val OSHA_PEL_8HR = 10.0
-    const val OSHA_STEL_15MIN = 15.0
-    const val IDLH_PPM = 100.0
-    const val ALERT_THRESHOLD_PPM = 100.0
+    // Risk classification thresholds (shift-average ppm concentration), matching H2SRiskLevel:
+    // SAFE < 1.0, MODERATE 1.0-5.0, HIGH 5.0-10.0, DANGEROUS > 10.0.
+    const val RISK_MODERATE_MIN_PPM = 1.0
+    const val RISK_HIGH_MIN_PPM = 5.0
+    const val RISK_DANGEROUS_MIN_PPM = 10.0
+    const val MAX_EXPECTED_CONCENTRATION_PPM = 15.0 // ceiling for gauge/chart scaling
 
     // Confidence scoring weights
     const val WEIGHT_SATURATION = 0.4
     const val WEIGHT_CONTRAST = 0.3
     const val WEIGHT_SHARPNESS = 0.3
-    const val MIN_CONFIDENCE_WARNING = 0.5
 
-    // Color correction sanity bounds
-    const val MIN_CORRECTION_SCALE = 0.5
-    const val MAX_CORRECTION_SCALE = 3.0
-    const val MAX_DEVIATION_FACTOR = 1.5
-    const val GAMMA = 0.45 // inverse gamma used for correction exponent (1/gamma = 2.22)
-    const val COLOR_PROFILE_HISTORY_SIZE = 10
+    // Optical-density -> ppm reference curve (k-NN regression), see ReferenceCurveLoader /
+    // OdKnnRegressor. The asset is a much larger, denser stand-in for the old 6-point hardcoded
+    // table; regenerate it from digitized manufacturer reference charts via
+    // tools/reference_curve_calibration/export_reference_curve.py.
+    const val REFERENCE_CURVE_ASSET_PATH = "reference_curve.json"
+    const val KNN_K = 5
+    const val KNN_DISTANCE_EPSILON = 1e-6
+
+    // Below this optical density the stain is considered indistinguishable from the blank
+    // reference (sensor/print noise floor), independent of the learned od->ppm curve.
+    const val MIN_DETECTABLE_OPTICAL_DENSITY = 0.015
 
     // Sync
     const val SYNC_WORK_NAME = "h2s_dose_sync_worker"
@@ -39,6 +42,10 @@ object Constants {
     const val COLLECTION_DOSE_LOGS = "dose_logs"
     const val COLLECTION_SHIFT_REPORTS = "shift_reports"
     const val COLLECTION_WORKER_PROFILES = "worker_profiles"
+    const val COLLECTION_INDUSTRIES = "industries"
+
+    // Shift session
+    const val DEFAULT_SHIFT_DURATION_HOURS = 8L
 
     // Notifications
     const val CHANNEL_ALERTS = "h2s_alerts"

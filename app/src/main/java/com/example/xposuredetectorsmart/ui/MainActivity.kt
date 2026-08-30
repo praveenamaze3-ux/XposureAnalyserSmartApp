@@ -12,7 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.xposuredetectorsmart.repository.ThemeMode
 import com.example.xposuredetectorsmart.sync.SyncWorker
 import com.example.xposuredetectorsmart.ui.navigation.H2SNavGraph

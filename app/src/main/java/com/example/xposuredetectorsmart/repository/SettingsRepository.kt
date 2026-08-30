@@ -21,6 +21,7 @@ class SettingsRepository @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         val LAST_UNLOCK_TIMESTAMP = longPreferencesKey("last_unlock_timestamp")
+        val CURRENT_INDUSTRY_ID = stringPreferencesKey("current_industry_id")
     }
 
     val themeMode: Flow<ThemeMode> = dataStore.data.map { prefs ->
@@ -44,5 +45,12 @@ class SettingsRepository @Inject constructor(
     suspend fun isSessionUnlocked(nowMillis: Long): Boolean {
         val last = dataStore.data.first()[Keys.LAST_UNLOCK_TIMESTAMP] ?: return false
         return (nowMillis - last) < Constants.BIOMETRIC_SESSION_TIMEOUT_MS
+    }
+
+    /** The industry this device's registration/admin flow is set up for (one per device). */
+    suspend fun getCurrentIndustryId(): String? = dataStore.data.first()[Keys.CURRENT_INDUSTRY_ID]
+
+    suspend fun setCurrentIndustryId(industryId: String) {
+        dataStore.edit { it[Keys.CURRENT_INDUSTRY_ID] = industryId }
     }
 }

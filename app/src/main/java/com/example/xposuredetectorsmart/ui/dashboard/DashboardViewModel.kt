@@ -20,7 +20,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val doseRepository: DoseRepository,
     private val networkMonitor: NetworkMonitor,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val isOnline: StateFlow<Boolean> = networkMonitor.isOnline

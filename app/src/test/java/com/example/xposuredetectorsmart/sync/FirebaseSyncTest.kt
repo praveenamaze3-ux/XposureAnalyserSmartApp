@@ -23,6 +23,7 @@ class FirebaseSyncTest {
         imageHash = "abc123",
         correctionApplied = "{\"scaleR\":1.1}",
         location = "LocationA",
+        stripSerial = "CAP_1700000000000",
     )
 
     @Test
@@ -50,10 +51,11 @@ class FirebaseSyncTest {
 
     @Test
     fun `shift report status reflects cumulative exposure`() {
-        val normal = FirestoreMappers.shiftReportData("WRK_1", "2026-08-25", listOf(log.copy(dosePpm = 2.0)), 0L)
-        val critical = FirestoreMappers.shiftReportData("WRK_1", "2026-08-25", listOf(log.copy(dosePpm = 150.0)), 0L)
+        // Classified as shift-average ppm = dosePpm / default 8h shift length.
+        val safe = FirestoreMappers.shiftReportData("WRK_1", "2026-08-25", listOf(log.copy(dosePpm = 2.0)), 0L)
+        val dangerous = FirestoreMappers.shiftReportData("WRK_1", "2026-08-25", listOf(log.copy(dosePpm = 150.0)), 0L)
 
-        assertEquals("NORMAL", normal["status"])
-        assertEquals("CRITICAL", critical["status"])
+        assertEquals("SAFE", safe["status"])
+        assertEquals("DANGEROUS", dangerous["status"])
     }
 }

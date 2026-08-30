@@ -21,6 +21,7 @@ class AlertMessagingService : FirebaseMessagingService() {
         notificationManager.showRemoteMessage(title, body)
     }
 
+    @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Timber.d("FCM token refreshed: %s", token)

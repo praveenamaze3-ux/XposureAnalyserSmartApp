@@ -12,18 +12,17 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 class AlertNotificationManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
 
-    fun showExposureAlert(workerId: String, cumulativePpm: Double) {
+    fun showExposureAlert(workerId: String, shiftAveragePpm: Double) {
         if (!hasPostPermission()) return
 
-        val title = if (cumulativePpm >= Constants.IDLH_PPM) {
-            "CRITICAL: H2S exposure limit exceeded"
-        } else {
-            "Warning: approaching H2S exposure limit"
-        }
-        val text = "Worker $workerId cumulative exposure is %.1f ppm this shift.".format(cumulativePpm)
+        val title = "DANGER: H2S exposure — evacuate and report to safety officer"
+        val text = "Worker $workerId shift-average exposure is %.1f ppm (threshold %.1f ppm).".format(
+            shiftAveragePpm,
+            Constants.RISK_DANGEROUS_MIN_PPM,
+        )
 
         val notification = NotificationCompat.Builder(context, Constants.CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_launcher_foreground)

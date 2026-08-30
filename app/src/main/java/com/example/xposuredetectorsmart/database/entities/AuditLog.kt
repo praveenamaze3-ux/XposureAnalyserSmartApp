@@ -5,13 +5,13 @@ import androidx.room.PrimaryKey
 
 enum class AuditAction {
     SCAN_QR,
-    SCAN_STRIP,
     CAPTURE_IMAGE,
     CALCULATE_DOSE,
     EXPORT_PDF,
     ALERT_TRIGGERED,
     WORKER_SWITCH,
     BIOMETRIC_UNLOCK,
+    SHIFT_END,
 }
 
 @Entity(tableName = "audit_logs")

@@ -54,12 +54,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.setBiometricEnabled(enabled) }
     }
 
-    fun exportShiftReport(workerId: String, department: String, shiftDate: String, location: String) {
+    fun exportShiftReport(workerId: String, department: String, shiftDate: String, location: String, shiftDurationHours: Double) {
         _exportState.value = ExportState.Exporting
         viewModelScope.launch {
             try {
                 val logs = doseRepository.getDoseLogsForShift(workerId, shiftDate).first()
-                val file = pdfGenerator.generate(workerId, department, shiftDate, location, logs)
+                val file = pdfGenerator.generate(workerId, department, shiftDate, location, logs, shiftDurationHours)
                 auditRepository.log(AuditAction.EXPORT_PDF, workerId, mapOf("file" to file.name, "shiftDate" to shiftDate))
                 _exportState.value = ExportState.Success(file)
             } catch (e: Exception) {

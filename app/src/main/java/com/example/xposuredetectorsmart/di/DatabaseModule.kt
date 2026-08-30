@@ -4,9 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import com.example.xposuredetectorsmart.database.AppDatabase
 import com.example.xposuredetectorsmart.database.dao.AuditLogDao
-import com.example.xposuredetectorsmart.database.dao.ColorProfileDao
 import com.example.xposuredetectorsmart.database.dao.DoseLogDao
+import com.example.xposuredetectorsmart.database.dao.IndustryDao
 import com.example.xposuredetectorsmart.database.dao.WorkerContextDao
+import com.example.xposuredetectorsmart.database.dao.WorkerProfileDao
 import com.example.xposuredetectorsmart.utils.Constants
 import dagger.Module
 import dagger.Provides
@@ -33,8 +34,11 @@ object DatabaseModule {
     fun provideWorkerContextDao(database: AppDatabase): WorkerContextDao = database.workerContextDao()
 
     @Provides
-    fun provideColorProfileDao(database: AppDatabase): ColorProfileDao = database.colorProfileDao()
+    fun provideAuditLogDao(database: AppDatabase): AuditLogDao = database.auditLogDao()
 
     @Provides
-    fun provideAuditLogDao(database: AppDatabase): AuditLogDao = database.auditLogDao()
+    fun provideIndustryDao(database: AppDatabase): IndustryDao = database.industryDao()
+
+    @Provides
+    fun provideWorkerProfileDao(database: AppDatabase): WorkerProfileDao = database.workerProfileDao()
 }

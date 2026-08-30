@@ -2,6 +2,7 @@ package com.example.xposuredetectorsmart.sync
 
 import com.example.xposuredetectorsmart.database.entities.DoseLog
 import com.example.xposuredetectorsmart.export.ReportFormatter
+import com.example.xposuredetectorsmart.utils.DoseAggregation
 
 /**
  * Pure mapping from Room entities to Firestore document shapes, kept separate from [FirebaseSync]
@@ -26,7 +27,7 @@ object FirestoreMappers {
     fun shiftReportDocId(workerId: String, shiftDate: String): String = "${workerId}_$shiftDate"
 
     fun shiftReportData(workerId: String, shiftDate: String, logs: List<DoseLog>, nowMillis: Long): Map<String, Any?> {
-        val total = logs.sumOf { it.dosePpm }
+        val total = DoseAggregation.cumulativeDose(logs)
         val status = ReportFormatter.statusFor(total)
         return mapOf(
             "workerID" to workerId,

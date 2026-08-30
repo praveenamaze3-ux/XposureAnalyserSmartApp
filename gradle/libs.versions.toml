@@ -24,6 +24,7 @@ coroutines = "1.11.0"
 securityCrypto = "1.1.0"
 mpAndroidChart = "v3.1.0"
 timber = "5.0.1"
+zxing = "3.5.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -92,6 +93,9 @@ mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", versio
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# QR generation (ML Kit only scans; ZXing core provides the writer)
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

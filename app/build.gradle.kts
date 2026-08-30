@@ -82,6 +82,14 @@ dependencies {
     // ML Kit
     implementation(libs.mlkit.barcode.scanning)
 
+    // QR generation (permanent worker wristband QR).
+    // Bundled as a local jar (app/libs) rather than the Maven coordinate: this dev machine's
+    // Gradle JDK fails TLS certificate validation when fetching new dependencies (corporate/
+    // antivirus SSL-inspection proxy, most likely) - see the "unable to find valid certification
+    // path" build error. If that trust-store issue gets fixed at the OS/JDK level, this can be
+    // switched back to `implementation(libs.zxing.core)`.
+    implementation(files("libs/zxing-core-3.5.3.jar"))
+
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 

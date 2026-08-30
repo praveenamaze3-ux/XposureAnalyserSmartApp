@@ -37,6 +37,13 @@ interface DoseLogDao {
     @Query("SELECT * FROM dose_logs ORDER BY timestamp DESC")
     fun getAllLogs(): Flow<List<DoseLog>>
 
-    @Query("SELECT COALESCE(SUM(dosePpm), 0.0) FROM dose_logs WHERE workerId = :workerId AND shiftDate = :shiftDate")
+    // A re-check of the same strip must not add its reading on top of the last one - only its
+    // peak reading counts. Cumulative dose is the sum of each distinct strip's peak reading.
+    @Query(
+        "SELECT COALESCE(SUM(peak), 0.0) FROM (" +
+            "SELECT MAX(dosePpm) AS peak FROM dose_logs " +
+            "WHERE workerId = :workerId AND shiftDate = :shiftDate GROUP BY stripSerial" +
+            ")",
+    )
     fun observeCumulativeDose(workerId: String, shiftDate: String): Flow<Double>
 }

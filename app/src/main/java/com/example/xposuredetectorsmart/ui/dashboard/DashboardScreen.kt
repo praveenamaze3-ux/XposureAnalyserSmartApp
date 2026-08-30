@@ -33,12 +33,13 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.xposuredetectorsmart.database.entities.DoseLog
 import com.example.xposuredetectorsmart.ui.components.AlertBanner
 import com.example.xposuredetectorsmart.ui.components.AppHeader
 import com.example.xposuredetectorsmart.ui.components.GlassCard
 import com.example.xposuredetectorsmart.ui.components.HudButtonLabel
+import com.example.xposuredetectorsmart.ui.components.ShiftClockBadge
 import com.example.xposuredetectorsmart.ui.components.SyncStatusChip
 import com.example.xposuredetectorsmart.ui.theme.HudLabelStyle
 import com.example.xposuredetectorsmart.ui.theme.HudNumberStyle
@@ -46,6 +47,7 @@ import com.example.xposuredetectorsmart.ui.theme.StatusCritical
 import com.example.xposuredetectorsmart.ui.theme.StatusWarning
 import com.example.xposuredetectorsmart.utils.Constants
 import com.example.xposuredetectorsmart.utils.DateUtils
+import com.example.xposuredetectorsmart.utils.DoseAggregation
 import com.example.xposuredetectorsmart.viewmodel.AlertViewModel
 import com.example.xposuredetectorsmart.viewmodel.ShiftState
 import com.example.xposuredetectorsmart.viewmodel.SharedShiftViewModel
@@ -73,7 +75,11 @@ fun DashboardScreen(
 
     com.example.xposuredetectorsmart.ui.components.HudBackground {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        AppHeader(title = "Dashboard", icon = Icons.Filled.Sensors)
+        AppHeader(
+            title = "Dashboard",
+            icon = Icons.Filled.Sensors,
+            trailing = { if (active != null) ShiftClockBadge(shiftStartedAt = active.context.shiftStartedAt) },
+        )
         Spacer(Modifier.height(16.dp))
 
         if (active == null) {
@@ -89,9 +95,10 @@ fun DashboardScreen(
 
         val workerId = active.context.workerId
         val shiftDate = active.context.shiftDate
+        val shiftDurationHours = DateUtils.elapsedHours(active.context.shiftStartedAt)
 
         LaunchedEffect(workerId, shiftDate) {
-            alertViewModel.watch(workerId, shiftDate)
+            alertViewModel.watch(workerId, shiftDate, active.context.shiftStartedAt)
         }
 
         val logs by remember(workerId, shiftDate) { dashboardViewModel.shiftLogs(workerId, shiftDate) }
@@ -101,12 +108,17 @@ fun DashboardScreen(
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Text("Shift: $workerId | $shiftDate | ${active.context.locationCode}", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                DateUtils.formatShiftWindow(active.context.shiftStartedAt, active.context.shiftExpiresAt),
+                style = MaterialTheme.typography.bodySmall,
+            )
             Spacer(Modifier.height(8.dp))
             SyncStatusChip(isOnline = isOnline)
             if (isAlertActive) {
                 Spacer(Modifier.height(12.dp))
                 AlertBanner(
-                    message = "ALERT: cumulative exposure ${"%.1f".format(cumulative)} ppm exceeds ${Constants.ALERT_THRESHOLD_PPM.toInt()} ppm",
+                    message = "DANGER: shift-average exposure ${"%.1f".format(cumulative / shiftDurationHours)} ppm exceeds ${Constants.RISK_DANGEROUS_MIN_PPM} ppm",
                 )
             }
         }
@@ -116,7 +128,11 @@ fun DashboardScreen(
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Text("EXPOSURE TREND", style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize))
             Spacer(Modifier.height(8.dp))
-            ExposureTrendChart(logs = logs, modifier = Modifier.fillMaxWidth().height(220.dp))
+            ExposureTrendChart(
+                logs = logs,
+                shiftDurationHours = shiftDurationHours,
+                modifier = Modifier.fillMaxWidth().height(220.dp),
+            )
         }
 
         Spacer(Modifier.height(16.dp))
@@ -185,7 +201,7 @@ private fun StatTile(icon: ImageVector, value: String, label: String) {
 }
 
 @Composable
-private fun ExposureTrendChart(logs: List<DoseLog>, modifier: Modifier = Modifier) {
+private fun ExposureTrendChart(logs: List<DoseLog>, shiftDurationHours: Double, modifier: Modifier = Modifier) {
     val lineColor = MaterialTheme.colorScheme.primary.toArgb()
     val labelColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
@@ -196,10 +212,9 @@ private fun ExposureTrendChart(logs: List<DoseLog>, modifier: Modifier = Modifie
         modifier = modifier,
         factory = { context -> LineChart(context) },
         update = { chart ->
-            var running = 0.0
+            val runningCumulative = DoseAggregation.runningCumulative(logs)
             val entries = logs.mapIndexed { index, log ->
-                running += log.dosePpm
-                Entry(DateUtils.hoursSinceMidnight(log.timestamp).toFloat(), running.toFloat())
+                Entry(DateUtils.hoursSinceMidnight(log.timestamp).toFloat(), runningCumulative[index].toFloat())
             }
 
             val dataSet = LineDataSet(entries, "Cumulative PPM").apply {
@@ -224,9 +239,11 @@ private fun ExposureTrendChart(logs: List<DoseLog>, modifier: Modifier = Modifie
             chart.legend.textColor = labelColor
             chart.description.isEnabled = false
 
+            // Reference lines expressed as cumulative dose (ppm·hr) - the dose that puts the
+            // shift-average concentration right at each risk threshold for this shift length.
             chart.axisLeft.removeAllLimitLines()
             chart.axisLeft.addLimitLine(
-                LimitLine(Constants.OSHA_PEL_8HR.toFloat(), "PEL").apply {
+                LimitLine((Constants.RISK_HIGH_MIN_PPM * shiftDurationHours).toFloat(), "High").apply {
                     setLineColor(warningColor)
                     lineWidth = 1.5f
                     enableDashedLine(12f, 8f, 0f)
@@ -234,7 +251,7 @@ private fun ExposureTrendChart(logs: List<DoseLog>, modifier: Modifier = Modifie
                 },
             )
             chart.axisLeft.addLimitLine(
-                LimitLine(Constants.IDLH_PPM.toFloat(), "IDLH").apply {
+                LimitLine((Constants.RISK_DANGEROUS_MIN_PPM * shiftDurationHours).toFloat(), "Dangerous").apply {
                     setLineColor(criticalColor)
                     lineWidth = 1.5f
                     enableDashedLine(12f, 8f, 0f)

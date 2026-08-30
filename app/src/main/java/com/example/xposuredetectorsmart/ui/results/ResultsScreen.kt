@@ -1,7 +1,8 @@
 package com.example.xposuredetectorsmart.ui.results
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,16 +25,24 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.xposuredetectorsmart.ui.components.CircularGauge
 import com.example.xposuredetectorsmart.ui.components.GlassCard
 import com.example.xposuredetectorsmart.ui.components.HudBackground
-import com.example.xposuredetectorsmart.ui.components.confidenceStatusColor
 import com.example.xposuredetectorsmart.ui.components.ppmStatusColor
 import com.example.xposuredetectorsmart.ui.theme.HudLabelStyle
+import com.example.xposuredetectorsmart.ui.theme.SignalCyan
 import com.example.xposuredetectorsmart.utils.Constants
+import com.example.xposuredetectorsmart.utils.DateUtils
+import com.example.xposuredetectorsmart.utils.RgbColor
 import com.example.xposuredetectorsmart.viewmodel.DoseAnalysisViewModel
+
+private fun RgbColor.toComposeColor(): Color = Color(
+    red = (r / 255.0).coerceIn(0.0, 1.0).toFloat(),
+    green = (g / 255.0).coerceIn(0.0, 1.0).toFloat(),
+    blue = (b / 255.0).coerceIn(0.0, 1.0).toFloat(),
+)
 
 @Composable
 fun ResultsScreen(
@@ -67,11 +77,11 @@ fun ResultsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularGauge(
-                        value = s.ppm.toFloat(),
-                        maxValue = (Constants.IDLH_PPM * 1.2).toFloat(),
-                        valueText = "%.1f".format(s.ppm),
-                        label = "ppm",
-                        color = ppmStatusColor(s.ppm),
+                        value = s.dose.shiftAveragePpm.toFloat(),
+                        maxValue = Constants.MAX_EXPECTED_CONCENTRATION_PPM.toFloat(),
+                        valueText = "%.1f".format(s.dose.shiftAveragePpm),
+                        label = "ppm avg",
+                        color = ppmStatusColor(s.dose.shiftAveragePpm),
                         size = 180.dp,
                     )
                     CircularGauge(
@@ -79,75 +89,82 @@ fun ResultsScreen(
                         maxValue = 1f,
                         valueText = "${(s.confidence * 100).toInt()}%",
                         label = "confidence",
-                        color = confidenceStatusColor(s.confidence),
+                        color = SignalCyan,
                         size = 110.dp,
                         valueTextSize = MaterialTheme.typography.titleLarge.fontSize,
                     )
                 }
 
-                if (s.confidence < Constants.MIN_CONFIDENCE_WARNING) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Low confidence reading - consider retrying with better lighting/focus.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = s.dose.riskLevel.description,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ppmStatusColor(s.dose.shiftAveragePpm),
+                )
+
+                s.dose.warningMessage?.let { warning ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(warning, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                 }
+
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Measured at ${DateUtils.formatTimestamp(s.timestamp)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 Spacer(Modifier.height(24.dp))
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        "REFERENCE PATCHES DETECTED: ${s.patches.size}",
+                        "EXPOSURE BREAKDOWN",
                         style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize),
                     )
-                    s.patches.forEach { patch ->
-                        Text(
-                            "- ${patch.type}: saturation %.2f".format(patch.saturation),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
+                    Text(
+                        "Optical density: %.3f".format(s.dose.opticalDensity),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                    Text(
+                        "Total dose: %.2f ppm·hr".format(s.dose.totalDosePpmHours),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        "8-hr TWA: %.2f ppm".format(s.dose.eightHourTwaPpm),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
 
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "BEFORE / AFTER CORRECTION",
+                    "BLANK / SAMPLE COLOR",
                     style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        GlassCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                            Image(
-                                bitmap = s.originalBitmap.asImageBitmap(),
-                                contentDescription = "Original capture",
-                                modifier = Modifier.fillMaxWidth().height(160.dp),
-                            )
-                        }
-                        Text(
-                            "ORIGINAL",
-                            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
-                            modifier = Modifier.padding(top = 6.dp),
-                        )
-                    }
+                    ColorSwatchCard(
+                        label = "BLANK (WHITE REF)",
+                        color = s.blankColor.toComposeColor(),
+                        rgbText = "RGB(${s.blankColor.r.toInt()}, ${s.blankColor.g.toInt()}, ${s.blankColor.b.toInt()})",
+                        modifier = Modifier.weight(1f),
+                    )
                     Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        GlassCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                            Image(
-                                bitmap = s.correctedBitmap.asImageBitmap(),
-                                contentDescription = "Color-corrected capture",
-                                modifier = Modifier.fillMaxWidth().height(160.dp),
-                            )
-                        }
-                        Text(
-                            "CORRECTED",
-                            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
-                            modifier = Modifier.padding(top = 6.dp),
-                        )
-                    }
+                    ColorSwatchCard(
+                        label = "SAMPLE (STRIP)",
+                        color = s.sampleColor.toComposeColor(),
+                        rgbText = "RGB(${s.sampleColor.r.toInt()}, ${s.sampleColor.g.toInt()}, ${s.sampleColor.b.toInt()})",
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    "* Estimated value based on colorimetric approximation. Not for medical diagnosis.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(Modifier.height(24.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = { doseAnalysisViewModel.reset(); onRetry() },
@@ -178,5 +195,25 @@ fun ResultsScreen(
             }
         }
     }
+    }
+}
+
+@Composable
+private fun ColorSwatchCard(label: String, color: Color, rgbText: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        GlassCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(color, RoundedCornerShape(4.dp)),
+            )
+        }
+        Text(
+            label,
+            style = HudLabelStyle.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        Text(rgbText, style = MaterialTheme.typography.labelSmall)
     }
 }

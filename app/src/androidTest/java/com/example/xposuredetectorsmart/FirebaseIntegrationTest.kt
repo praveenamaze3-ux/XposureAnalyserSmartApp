@@ -58,6 +58,7 @@ class FirebaseIntegrationTest {
             imageHash = "test-hash",
             correctionApplied = "{}",
             location = "TestLocation",
+            stripSerial = "CAP_TEST",
         )
 
         val result = firebaseSync.uploadDoseLog(log)

@@ -1,31 +1,9 @@
 rules_version = '2';
 
-// Deploy with: firebase deploy --only firestore:rules
-// The app signs every worker in anonymously (see FirebaseAuthBootstrapper) purely to satisfy
-// `request.auth != null` below - there is no login screen, the QR scan identifies the worker.
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    match /dose_logs/{docId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-        && request.resource.data.workerID is string
-        && docId.matches(request.resource.data.workerID + '_.*');
-      allow delete: if false;
-    }
-
-    match /shift_reports/{docId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-        && request.resource.data.workerID is string
-        && docId.matches(request.resource.data.workerID + '_.*');
-      allow delete: if false;
-    }
-
-    match /worker_profiles/{workerId} {
-      allow read: if request.auth != null;
-      // Worker profile metadata (name/department/risk level) is managed by admins, not the app.
-      allow write: if false;
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

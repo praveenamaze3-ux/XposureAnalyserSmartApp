@@ -6,21 +6,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.xposuredetectorsmart.BuildConfig
 import com.example.xposuredetectorsmart.database.entities.WorkerContext
+import com.example.xposuredetectorsmart.repository.IndustryRepository
+import com.example.xposuredetectorsmart.repository.WorkerProfileRepository
 import com.example.xposuredetectorsmart.scanner.QRCodeScanner
-import com.example.xposuredetectorsmart.scanner.QRData
 import com.example.xposuredetectorsmart.scanner.QRParseException
 import com.example.xposuredetectorsmart.scanner.QRParser
+import com.example.xposuredetectorsmart.utils.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 sealed class QRScanUiState {
     object Scanning : QRScanUiState()
-    data class Scanned(val data: QRData, val context: WorkerContext) : QRScanUiState()
+    data class Scanned(val context: WorkerContext) : QRScanUiState()
     data class Invalid(val message: String) : QRScanUiState()
 }
 
@@ -28,6 +32,8 @@ sealed class QRScanUiState {
 class QRScannerViewModel @Inject constructor(
     private val qrCodeScanner: QRCodeScanner,
     private val qrParser: QRParser,
+    private val workerProfileRepository: WorkerProfileRepository,
+    private val industryRepository: IndustryRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<QRScanUiState>(QRScanUiState.Scanning)
@@ -51,17 +57,32 @@ class QRScannerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val data = qrParser.parse(raw)
+
+                val profile = workerProfileRepository.getProfile(data.workerId)
+                if (profile == null) {
+                    _uiState.value = QRScanUiState.Invalid("Worker not found — connect to sync profiles")
+                    return@launch
+                }
+                if (profile.status != "ACTIVE") {
+                    _uiState.value = QRScanUiState.Invalid("Worker inactive")
+                    return@launch
+                }
+
+                val industry = industryRepository.getIndustry(data.industryId)
+                val shiftDurationHours = industry?.shiftDurationHours ?: Constants.DEFAULT_SHIFT_DURATION_HOURS
+                val now = System.currentTimeMillis()
+
                 val context = WorkerContext(
-                    workerId = data.workerId,
-                    shiftDate = data.date.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                    locationCode = data.location,
-                    shiftType = data.shift,
-                    stripSerial = "", // paired in StripScannerScreen once the disposable strip is scanned
+                    workerId = profile.workerId,
+                    industryId = data.industryId,
+                    shiftDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                    locationCode = "",
+                    shiftStartedAt = now,
+                    shiftExpiresAt = now + TimeUnit.HOURS.toMillis(shiftDurationHours),
                     phoneModel = "${Build.MANUFACTURER} ${Build.MODEL}",
                     appVersion = BuildConfig.VERSION_NAME,
-                    scanTimestamp = System.currentTimeMillis(),
                 )
-                _uiState.value = QRScanUiState.Scanned(data, context)
+                _uiState.value = QRScanUiState.Scanned(context)
             } catch (e: QRParseException) {
                 _uiState.value = QRScanUiState.Invalid(e.message ?: "Invalid QR code")
             }
