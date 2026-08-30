@@ -1,0 +1,357 @@
+[
+  {
+    "od": 0.0,
+    "ppm": 0.0,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.02,
+    "ppm": 0.371,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.04,
+    "ppm": 0.748,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.06,
+    "ppm": 1.129,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.08,
+    "ppm": 1.515,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.1,
+    "ppm": 1.906,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.12,
+    "ppm": 2.302,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.14,
+    "ppm": 2.703,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.16,
+    "ppm": 3.109,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.18,
+    "ppm": 3.519,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.2,
+    "ppm": 3.935,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.22,
+    "ppm": 4.355,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.24,
+    "ppm": 4.781,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.26,
+    "ppm": 5.211,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.28,
+    "ppm": 5.646,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.3,
+    "ppm": 6.086,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.32,
+    "ppm": 6.531,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.34,
+    "ppm": 6.98,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.36,
+    "ppm": 7.435,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.38,
+    "ppm": 7.895,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.4,
+    "ppm": 8.359,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.42,
+    "ppm": 8.829,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.44,
+    "ppm": 9.303,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.46,
+    "ppm": 9.782,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.48,
+    "ppm": 10.266,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.5,
+    "ppm": 10.755,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.55,
+    "ppm": 11.999,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.65,
+    "ppm": 14.578,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.75,
+    "ppm": 17.28,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.85,
+    "ppm": 20.104,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 0.95,
+    "ppm": 23.051,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.05,
+    "ppm": 26.12,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.15,
+    "ppm": 29.311,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.25,
+    "ppm": 32.625,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.35,
+    "ppm": 36.061,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.45,
+    "ppm": 39.62,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.55,
+    "ppm": 43.301,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.65,
+    "ppm": 47.104,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.75,
+    "ppm": 51.03,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.85,
+    "ppm": 55.078,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 1.95,
+    "ppm": 59.249,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.05,
+    "ppm": 63.542,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.15,
+    "ppm": 67.957,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.25,
+    "ppm": 72.495,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.35,
+    "ppm": 77.155,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.45,
+    "ppm": 81.938,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.55,
+    "ppm": 86.843,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.65,
+    "ppm": 91.87,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.75,
+    "ppm": 97.02,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.85,
+    "ppm": 102.292,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 2.95,
+    "ppm": 107.687,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.05,
+    "ppm": 113.204,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.15,
+    "ppm": 118.843,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.25,
+    "ppm": 124.605,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.35,
+    "ppm": 130.489,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.45,
+    "ppm": 136.496,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.55,
+    "ppm": 142.625,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.65,
+    "ppm": 148.876,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.75,
+    "ppm": 155.25,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.85,
+    "ppm": 161.746,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 3.95,
+    "ppm": 168.365,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.05,
+    "ppm": 175.106,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.15,
+    "ppm": 181.969,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.25,
+    "ppm": 188.955,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.35,
+    "ppm": 196.063,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.45,
+    "ppm": 203.294,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.55,
+    "ppm": 210.647,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.65,
+    "ppm": 218.122,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.75,
+    "ppm": 225.72,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.85,
+    "ppm": 233.44,
+    "source": "placeholder-synthetic-v1"
+  },
+  {
+    "od": 4.95,
+    "ppm": 241.283,
+    "source": "placeholder-synthetic-v1"
+  }
+]

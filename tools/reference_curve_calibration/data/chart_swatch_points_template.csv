@@ -1,0 +1,8 @@
+swatch_id,printed_ppm,x,y,is_blank
+blank,0,0,0,1
+swatch_10ppm,10,0,0,0
+swatch_25ppm,25,0,0,0
+swatch_50ppm,50,0,0,0
+swatch_100ppm,100,0,0,0
+swatch_150ppm,150,0,0,0
+swatch_200ppm,200,0,0,0
